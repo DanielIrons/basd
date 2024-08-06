@@ -1,20 +1,26 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/ironsdan/basd/config"
 	"github.com/urfave/cli/v2"
 )
 
-const (
+var (
 	buildDate = "unknown"
 	buildHash = "unknown"
 )
 
 func main() {
 	compiled, _ := time.Parse("", buildDate)
+
+	cli.VersionPrinter = func(cCtx *cli.Context) {
+		fmt.Printf("%s built %s\n", cCtx.App.Version, cCtx.App.Compiled)
+	}
 	app := cli.App{
 		Name:                   "basd",
 		UseShortOptionHandling: true,
@@ -24,20 +30,40 @@ func main() {
 		Version:                buildHash,
 		Authors: []*cli.Author{
 			{
-				Name: "Daniel Irons",
+				Name:  "Daniel Irons",
+				Email: "ironsdan@pm.me",
 			},
 		},
-		Usage: "basic *** service discovery",
+		Usage: "basic service discovery",
 		Commands: []*cli.Command{
 			{
-				Name:    "server",
-				Aliases: []string{"s"},
-				Usage:   "start the basd server",
+				Name:    "agent",
+				Aliases: []string{"a"},
+				Usage:   "start the basd agent",
 				Action: func(cCtx *cli.Context) error {
-					log.Println("running server")
 					return nil
 				},
 			},
+			{
+				Name:    "version",
+				Aliases: []string{"v"},
+				Usage:   "show version",
+				Action: func(cCtx *cli.Context) error {
+					cli.VersionPrinter(cCtx)
+					return nil
+				},
+			},
+		},
+		Before: func(cCtx *cli.Context) error {
+			c, err := config.LoadConfig(cCtx.String("config"))
+			if err != nil {
+				return err
+			}
+			cCtx.App.Metadata["config"] = c
+			return nil
+		},
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "config", Aliases: []string{"c"}, Usage: "path to config file", Value: "config.json"},
 		},
 	}
 
